@@ -83,7 +83,7 @@ Also includes the `opentrain://guide` resource and `diagnose_training` prompt. R
 
 Downloads return `{path, bytes, sha256, ...}` rather than filling the conversation with data. Only simple filenames are accepted for `save_as`, under `OPENTRAIN_OUTPUT_DIR`. Existing files and symlinks are never overwritten. Temporary partial downloads are removed on failure; final files have mode `0600`, newly created directories `0700`.
 
-- JSONL preserves every field and repeated SDK steps; it does not deduplicate resumed history. TensorBoard-imported history is reconstructed by step by the Open Train backend.
+- JSONL preserves fields and distinct resumed records at repeated steps. The server excludes exact SDK replay copies and quarantined/superseded records; legacy TensorBoard history is reconstructed from its existing step-based projection.
 - CSV requires explicit `keys`; `_step`, `_timestamp`, and `_runtime` are included. Nested cells are JSON-encoded and formula-like string cells are escaped for spreadsheet safety. Use JSONL for exact string fidelity.
 - Default export cap: 100,000 rows; explicit maximum: 1,000,000 rows per call. Follow `next_offset` into another filename to export a larger run. `complete` means an export started at zero and reached the initial total; `range_complete` describes an offset export.
 - Default file/export size cap: 512 MiB; `max_bytes` can explicitly raise it to 10 GiB. Files stream to disk. A SHA-256 receipt is always calculated; a server SHA-256 is verified when available. Artifact entries do not currently expose a per-file digest through this API, so their receipt is not independent integrity verification.

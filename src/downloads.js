@@ -195,7 +195,7 @@ export async function downloadHistory(
         next_offset: cursor < total ? cursor : null,
         snapshot_changed: before.updated !== after.updated,
         consistency:
-          "Best-effort live export, not an atomic snapshot. SDK history preserves duplicate steps; TensorBoard-imported history is reconstructed by step.",
+          "Best-effort live export, not an atomic snapshot. Active canonical history preserves distinct resumed records; exact SDK replays and quarantined/superseded records are excluded. Legacy TensorBoard data is a step-based projection.",
         fields: fields || "all",
       };
     },
