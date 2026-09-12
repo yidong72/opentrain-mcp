@@ -1,0 +1,10 @@
+node_modules/
+opentrain-downloads/
+.env
+.env.*
+!.env.example
+*.key
+*.pem
+coverage/
+.DS_Store
+*.tgz

@@ -1,0 +1,41 @@
+{
+  "name": "opentrain-mcp",
+  "version": "0.1.0",
+  "description": "Read-only MCP tools for exploring, plotting, exporting, and diagnosing Open Train experiments",
+  "type": "module",
+  "bin": {
+    "opentrain-mcp": "index.js"
+  },
+  "files": [
+    "index.js",
+    "src",
+    "README.md",
+    "llms-install.md",
+    "LICENSE"
+  ],
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "start": "node index.js",
+    "check": "node index.js --check",
+    "test": "node --test",
+    "lint": "prettier --check ."
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/yidong72/opentrain-mcp.git"
+  },
+  "homepage": "https://github.com/yidong72/opentrain-mcp#readme",
+  "bugs": "https://github.com/yidong72/opentrain-mcp/issues",
+  "license": "MIT",
+  "dependencies": {
+    "@modelcontextprotocol/server": "2.0.0",
+    "@resvg/resvg-js": "2.6.2",
+    "zod": "4.6.2"
+  },
+  "devDependencies": {
+    "@modelcontextprotocol/client": "2.0.0",
+    "prettier": "3.8.1"
+  }
+}
