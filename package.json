@@ -1,6 +1,6 @@
 {
   "name": "opentrain-mcp",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Read-only MCP tools for exploring, plotting, exporting, and diagnosing Open Train experiments",
   "type": "module",
   "bin": {

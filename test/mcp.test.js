@@ -145,6 +145,13 @@ test("real stdio MCP lifecycle: discovery, all tools, schemas, prompts, resource
             ],
             total: 5,
             sampled: false,
+            axis:
+              url.searchParams.get("x") === "auto"
+                ? run.uid === "r1"
+                  ? "_step"
+                  : "train/step"
+                : url.searchParams.get("x"),
+            missing_axis: 2,
           };
           break;
         case "history": {
@@ -305,7 +312,12 @@ test("real stdio MCP lifecycle: discovery, all tools, schemas, prompts, resource
   );
   const plot = await client.callTool({
     name: "plot_metric",
-    arguments: { run_uids: ["r0", "r1"], key: "train/loss", smoothing: 0.5 },
+    arguments: {
+      run_uids: ["r0", "r1"],
+      key: "train/loss",
+      smoothing: 0.5,
+      axis: "_step",
+    },
   });
   assert.ok(!plot.isError, JSON.stringify(plot));
   const png = Buffer.from(
@@ -313,6 +325,21 @@ test("real stdio MCP lifecycle: discovery, all tools, schemas, prompts, resource
     "base64",
   );
   assert.equal(png.subarray(1, 4).toString(), "PNG");
+  assert.equal(
+    (
+      await client.callTool({
+        name: "plot_metric",
+        arguments: { run_uids: ["r0", "r1"], key: "train/loss" },
+      })
+    ).isError,
+    true,
+  );
+  const diagnostics = await call("diagnose_run", {
+    uid: "r0",
+    metrics: ["train/loss"],
+  });
+  assert.equal(diagnostics.metrics["train/loss"].axis, "train/step");
+  assert.equal(diagnostics.metrics["train/loss"].missing_axis, 2);
   assert.equal(
     (await call("diagnose_run", { uid: "r0", metrics: ["train/loss"] }))
       .metrics["train/loss"].observed_points,

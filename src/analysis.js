@@ -7,11 +7,18 @@ export function sessions(run) {
 }
 
 export function summarizeSeries(series, goal = "observe") {
+  const provenance = {
+    axis: series.axis,
+    missing_axis: series.missing_axis || 0,
+    legacy_projection_points: series.legacy_projection_points || 0,
+    axis_warning: series.axis_warning,
+  };
   const points = series.points.filter(
     ([x, y]) => Number.isFinite(x) && Number.isFinite(y),
   );
   if (!points.length)
     return {
+      ...provenance,
       total: series.total,
       sampled: series.sampled,
       observed_points: 0,
@@ -63,6 +70,7 @@ export function summarizeSeries(series, goal = "observe") {
     if (p[1] > max[1]) max = p;
   }
   return {
+    ...provenance,
     total: series.total,
     sampled: !!series.sampled,
     observed_points: points.length,

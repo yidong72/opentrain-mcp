@@ -93,6 +93,8 @@ Downloads return `{path, bytes, sha256, ...}` rather than filling the conversati
 
 ### Plot and diagnosis semantics
 
+On the updated Open Train server, tools default to `axis="auto"`, respecting `wandb.define_metric` axes. An explicit `train/global_step` or `_step` overrides this. Plots reject comparisons whose runs resolve to different axes. Responses preserve omitted-axis counts and legacy-index warnings, and `get_run` exposes ingestion provenance. Canonical history excludes quarantined/superseded records and exact SDK replay copies while retaining distinct records at repeated steps; original delivery streams remain on the server for audit. See [server recovery semantics](https://github.com/yidong72/opentrain/blob/main/docs/history-recovery.md).
+
 The series endpoint returns at most 10,000 points per metric using min/max downsampling. Both numeric tools and plots disclose `sampled` and original `total`. Statistics on sampled points can bias means, variability and jump heuristics; they are not full-history estimates.
 
 EMA uses `smoothing * previous + (1 - smoothing) * current`, resets across returned null gaps, and overlays the raw line when smoothing is nonzero. Explicit `x_min`/`x_max` and `y_min`/`y_max` set the plot view. This clips already-returned points: **zoom does not fetch higher-resolution data**. Export raw history when investigating a narrow interval. Server sampling can omit null gaps, so missing segments are only shown when present in returned data.
@@ -114,7 +116,7 @@ A dashboard label of `crashed` can mean stopped heartbeats, not a failed trainin
 - Transient connection/408/429/5xx failures retry up to twice with bounded backoff. Authentication failures do not retry. Body-stream failures leave no completed download. This is analysis tooling, not the training client’s offline cache/uploader.
 - Stdio only: no listening port or publicly exposed multi-user MCP service. Run a separate process/key for each user. Keep the output directory private and under your control.
 
-This adapter targets Open Train’s `/api/runs`, series, history, writers, tables, artifact, log and file endpoints (tested against Open Train commit `a4ddb14`). It is not a W&B cloud MCP client and does not claim full W&B API parity.
+This adapter targets Open Train’s `/api/runs`, series, history, writers, tables, artifact, log and file endpoints. Version 0.1.1's automatic axes require the server's history-integrity update; use an explicit axis such as `_step` with older servers. It is not a W&B cloud MCP client and does not claim full W&B API parity.
 
 ## Development
 

@@ -17,7 +17,7 @@ OPENTRAIN_OUTPUT_DIR     Private downloads directory (default ./opentrain-downlo
 --check verifies authentication and run access without modifying training data.
 No .env file is required. Each user runs this process with their own API key.`);
 } else if (args.includes("--version")) {
-  console.log("0.1.0");
+  console.log("0.1.1");
 } else {
   let client;
   try {

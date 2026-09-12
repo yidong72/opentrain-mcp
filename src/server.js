@@ -27,7 +27,14 @@ const page = {
   limit: z.number().int().min(1).max(100).default(50),
 };
 const seriesOptions = {
-  axis: z.string().min(1).max(500).default("_step"),
+  axis: z
+    .string()
+    .min(1)
+    .max(500)
+    .default("auto")
+    .describe(
+      "auto respects server metric definitions; use an explicit axis to override.",
+    ),
   stream: z.enum(["history", "system"]).default("history"),
   limit: z.number().int().min(10).max(10000).default(2000),
 };
@@ -44,7 +51,7 @@ const goals = z.enum(["observe", "minimize", "maximize"]).default("observe");
 
 export function createServer(client) {
   const server = new McpServer(
-    { name: "opentrain-mcp", version: "0.1.0" },
+    { name: "opentrain-mcp", version: "0.1.1" },
     { instructions: GUIDE },
   );
   const asText = (value) => {
@@ -204,7 +211,7 @@ export function createServer(client) {
 
   tool(
     "get_history",
-    "Read a bounded page of original history rows, preserving repeated SDK steps. TensorBoard imports reconstruct rows by step. Use download_history for large/exact analysis.",
+    "Read a bounded page of active canonical history, preserving distinct records at repeated SDK steps. Exact replays and quarantined/superseded records are excluded. Use download_history for large analysis.",
     { uid, ...page, keys: z.array(metric).min(1).max(100).optional() },
     async ({ uid, offset, limit, keys }, signal) => {
       const data = await client.json(
@@ -442,7 +449,26 @@ export function createServer(client) {
           sessions: sessions(run),
         });
       }
-      const { png, bounds } = renderPlot(data, options);
+      const resolvedAxes = [
+        ...new Set(
+          data
+            .filter((s) => s.total || s.missing_axis)
+            .map(
+              (s) =>
+                s.axis || (options.axis === "auto" ? "_step" : options.axis),
+            ),
+        ),
+      ];
+      if (resolvedAxes.length > 1)
+        throw new Error(
+          "Runs define different metric axes. Choose an explicit common axis before comparing.",
+        );
+      const resolvedAxis =
+        resolvedAxes[0] || (options.axis === "auto" ? "_step" : options.axis);
+      const { png, bounds } = renderPlot(data, {
+        ...options,
+        axis: resolvedAxis,
+      });
       const file = await saveDownload(
         client.outputDir,
         options.save_as || `plot-${randomUUID()}.png`,
@@ -453,7 +479,7 @@ export function createServer(client) {
           ...asText({
             ...file,
             key: options.key,
-            axis: options.axis,
+            axis: resolvedAxis,
             bounds,
             smoothing: options.smoothing,
             runs: data.map(({ points, sessions, ...s }) => ({
