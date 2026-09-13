@@ -153,7 +153,7 @@ export class OpenTrainClient {
   series(
     uid,
     key,
-    { axis = "_step", stream = "history", limit = 2000, signal } = {},
+    { axis = "auto", stream = "history", limit = 2000, signal } = {},
   ) {
     return this.json(
       `/api/runs/${segment(uid)}/series`,

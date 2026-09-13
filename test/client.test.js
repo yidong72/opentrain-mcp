@@ -23,11 +23,78 @@ import {
   downloadFile,
   csvCell,
 } from "../src/downloads.js";
-import { summarizeSeries, smooth } from "../src/analysis.js";
+import { summarizeSeries, smooth, sessions } from "../src/analysis.js";
 import { renderPlot } from "../src/plot.js";
 
 const temp = () => mkdtemp(join(tmpdir(), "opentrain-mcp-test-"));
 const config = { key: "test-key-not-real", baseUrl: "https://example.test" };
+
+test("SDK sessions take precedence, including authoritative empty lists", () => {
+  const old = {
+    config: { tensorboard_import: { sessions: [{ first_step: 0 }] } },
+  };
+  assert.equal(sessions(old).length, 1);
+  assert.deepEqual(sessions({ ...old, sessions: [] }), []);
+  assert.deepEqual(sessions({ ...old, sessions: [{ id: "sdk:one" }] }), [
+    { id: "sdk:one" },
+  ]);
+});
+
+test("SDK session markers render on declared training and wall-time axes", () => {
+  const input = [
+    {
+      label: "SDK resumed",
+      points: [
+        [0, 1],
+        [20, 2],
+      ],
+      total: 2,
+      sessions: [
+        { first_step: 0 },
+        {
+          first_step: 0,
+          started: 10,
+          axes: { "train/global_step": { first: 10 } },
+        },
+      ],
+    },
+  ];
+  for (const axis of ["train/global_step", "_timestamp"])
+    assert.notDeepEqual(
+      renderPlot(input, { key: "loss", axis }).png,
+      renderPlot(input, { key: "loss", axis, session_markers: false }).png,
+    );
+});
+
+test("Per-metric marker overrides a setup-only zero step", () => {
+  const series = [
+    {
+      label: "SDK resumed",
+      points: [
+        [1, 1],
+        [20, 2],
+      ],
+      total: 2,
+      session_starts: { "sdk:two": { x: 10, timestamp: 123 } },
+      sessions: [
+        { id: "sdk:one" },
+        {
+          id: "sdk:two",
+          source: "sdk",
+          axes: { "train/global_step": { first: 0 } },
+        },
+      ],
+    },
+  ];
+  assert.notDeepEqual(
+    renderPlot(series, { key: "loss", axis: "train/global_step" }).png,
+    renderPlot(series, {
+      key: "loss",
+      axis: "train/global_step",
+      session_markers: false,
+    }).png,
+  );
+});
 
 test("configuration: key-file assignment, env precedence, safe origin", async () => {
   const dir = await temp();

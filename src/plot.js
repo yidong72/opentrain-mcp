@@ -121,17 +121,21 @@ export function renderPlot(
           parts.push(
             `<circle cx="${px(x)}" cy="${py(y)}" r="2.5" fill="${color}"/>`,
           );
-    if (session_markers && axis === "_step")
-      for (const [j, session] of (s.sessions || []).entries())
-        if (
-          j > 0 &&
-          Number.isFinite(session.first_step) &&
-          session.first_step >= xmin &&
-          session.first_step <= xmax
-        )
+    if (session_markers)
+      for (const [j, session] of (s.sessions || []).entries()) {
+        const start =
+          s.session_starts && session.source?.startsWith("sdk")
+            ? s.session_starts[session.id]?.x
+            : axis === "_step"
+              ? session.first_step
+              : axis === "_timestamp"
+                ? (session.first_wall_time ?? session.started)
+                : session.axes?.[axis]?.first;
+        if (j > 0 && Number.isFinite(start) && start >= xmin && start <= xmax)
           parts.push(
-            `<path d="M ${px(session.first_step)} ${top} V ${bottom}" stroke="${color}" stroke-opacity=".4" stroke-dasharray="4 5"/><text x="${px(session.first_step) + 3}" y="${top + 16 + i * 16}" style="fill:${color};font-size:11px">S${j + 1}</text>`,
+            `<path d="M ${px(start)} ${top} V ${bottom}" stroke="${color}" stroke-opacity=".4" stroke-dasharray="4 5"/><text x="${px(start) + 3}" y="${top + 16 + i * 16}" style="fill:${color};font-size:11px">S${j + 1}</text>`,
           );
+      }
     parts.push(
       `</g><rect x="${left}" y="${610 + i * 24}" width="22" height="4" fill="${color}"/><text x="${left + 32}" y="${617 + i * 24}">${escape(s.label.slice(0, 100))} (${s.points.length}/${s.total} points${s.sessions?.length ? `; ${s.sessions.length} sessions` : ""})</text>`,
     );

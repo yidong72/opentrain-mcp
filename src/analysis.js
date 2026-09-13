@@ -2,7 +2,7 @@ export const STATE_CAVEAT =
   "Dashboard state is not scheduler/job health. Open Train may label a running record crashed after heartbeat inactivity; offline or disconnected training can still be healthy.";
 
 export function sessions(run) {
-  const imported = run.config?.tensorboard_import?.sessions;
+  const imported = run.sessions ?? run.config?.tensorboard_import?.sessions;
   return Array.isArray(imported) ? imported : [];
 }
 

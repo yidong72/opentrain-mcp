@@ -98,6 +98,29 @@ test("real stdio MCP lifecycle: discovery, all tools, schemas, prompts, resource
     keys: [{ key: "train/loss", stream: "history", count: 5, last_step: 4 }],
     files: [file],
   }));
+  runs[0].sessions = [
+    {
+      id: "sdk:first",
+      source: "sdk",
+      started: 100,
+      ended: 200,
+      records: 0,
+      host: "worker-a",
+    },
+    { id: "sdk:second", source: "sdk", started: 210, ended: 300, records: 2 },
+    {
+      id: "inferred:third",
+      source: "sdk",
+      started: 310,
+      inferred: true,
+      records: 3,
+    },
+  ];
+  runs[0].session_count = 3;
+  runs[0].session_caveat =
+    "Inferred segments are a lower bound, not a job census.";
+  runs[1].sessions = [];
+  runs[1].session_count = 0;
   const requests = [];
   const http = createServer((req, res) => {
     requests.push({ method: req.method, url: req.url });
@@ -259,6 +282,18 @@ test("real stdio MCP lifecycle: discovery, all tools, schemas, prompts, resource
     undefined,
   );
   assert.equal((await call("get_run", { uid: "r0" })).writers.length, 2);
+  const sdkRun = await call("get_run", { uid: "r0", include_config: false });
+  assert.deepEqual(sdkRun.sessions, runs[0].sessions);
+  assert.equal(sdkRun.session_count, first.runs[0].session_count);
+  assert.equal(sdkRun.session_caveat, runs[0].session_caveat);
+  const empty = await call("get_run", { uid: "r1" });
+  assert.deepEqual(empty.sessions, []); // Do not resurrect stale TensorBoard metadata.
+  assert.equal(empty.session_count, 0);
+  assert.match(empty.session_caveat, /Server-recorded/);
+  const legacy = await call("get_run", { uid: "r2" });
+  assert.deepEqual(legacy.sessions, runs[2].config.tensorboard_import.sessions);
+  assert.equal(legacy.session_count, 2);
+  assert.match(legacy.session_caveat, /Older servers/);
   assert.equal(
     (await call("list_metrics", { uid: "r0", search: "train/" })).total,
     1,

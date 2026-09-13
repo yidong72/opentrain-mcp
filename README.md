@@ -63,7 +63,7 @@ Minimal Linux containers need an installed system font (for example, DejaVu Sans
 | Tool                                             | Purpose                                                                               |
 | ------------------------------------------------ | ------------------------------------------------------------------------------------- |
 | `list_runs`                                      | Filter by entity/project, name/group/tags, or state; paginate with `next_offset`      |
-| `get_run`                                        | Config, summary, distributed writers, and imported TensorBoard sessions               |
+| `get_run`                                        | Config, summary, distributed writers, and SDK/TensorBoard sessions                    |
 | `list_metrics`                                   | Discover exact keys and metric groups, with counts and pagination                     |
 | `get_metric_series`                              | Bounded numeric series, explicitly marked if sampled                                  |
 | `get_history`                                    | Small pages of original history rows                                                  |
@@ -78,6 +78,8 @@ Minimal Linux containers need an installed system font (for example, DejaVu Sans
 | `compare_runs`                                   | Side-by-side statistics, with sampling and unmatched-budget warnings                  |
 
 Also includes the `opentrain://guide` resource and `diagnose_training` prompt. Run IDs passed to tools are **internal `uid` values returned by `list_runs`**, not W&B run names/tags.
+
+`get_run` uses the server's `sessions` list, including SDK writer metadata, inferred historical segments, and recovered/imported history. Session details remain available with `include_config=false`. Only older servers without this field fall back to TensorBoard config metadata. Per-metric `session_starts` position plot markers on the selected axis, ignoring setup-only step-zero records that do not contain the plotted metric. Inferred segments are not a complete census of Slurm jobs.
 
 ### Downloads and large histories
 

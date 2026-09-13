@@ -8,8 +8,8 @@ import { renderPlot } from "./plot.js";
 
 export const GUIDE = `Open Train analysis workflow:
 1. list_runs finds internal run uids (not W&B run names). Use entity/project and name search, follow next_offset until null. Offset pagination is best-effort if new runs arrive.
-2. get_run checks config, summary, TensorBoard sessions and writer state; list_metrics discovers exact metric keys.
-3. plot_metric returns a PNG visible to image-capable agents. Compare the same metric/axis across runs. Dashed S2/S3 lines mark imported session starts, not necessarily failure or a step reset. Native W&B resumed histories do not always have explicit session boundaries.
+2. get_run checks config, summary, SDK/TensorBoard sessions and writer state; list_metrics discovers exact metric keys.
+3. plot_metric returns a PNG visible to image-capable agents. Compare the same metric/axis across runs. Dashed S2/S3 lines mark the first recorded session point on the chosen axis, not necessarily failure or a step reset. SDK writer metadata identifies processes; inferred historical segments are a lower bound, not a complete job census.
 4. diagnose_run and compare_runs report descriptive evidence, not causal conclusions. Specify minimize/maximize only when the metric objective is known. Min/max-downsampled points can bias mean/std/jump statistics. Use download_history JSONL for canonical history analysis: distinct resumed records at repeated steps are preserved; exact SDK replay copies and quarantined/superseded records are excluded by the server.
 5. Correlate metric changes with config, logs, sessions, writers, tables, and artifacts. Run state is dashboard telemetry, not cluster job health. Offline data is invisible until uploaded. Do not infer that a job failed from crashed state alone.
 6. download_history, download_file and download_artifact_file save private local files and return path/size/SHA-256 receipts. They do not insert full file contents in the conversation. External artifact references are never fetched. The MCP host needs local filesystem access to analyze downloads.
@@ -150,7 +150,7 @@ export function createServer(client) {
 
   tool(
     "get_run",
-    "Read run metadata, config, summary, imported session boundaries, and distributed writer state. Omits the full metric/file catalogs; use list_metrics/list_files.",
+    "Read run metadata, config, summary, SDK/imported session boundaries, and distributed writer state. Omits the full metric/file catalogs; use list_metrics/list_files.",
     { uid, include_config: z.boolean().default(true) },
     async ({ uid, include_config }, signal) => {
       const [run, writers] = await Promise.all([
@@ -158,15 +158,18 @@ export function createServer(client) {
         client.json(endpoint(uid, "writers"), {}, { signal }),
       ]);
       const { keys, files, ...metadata } = run;
-      const imported = sessions(run);
+      const recordedSessions = sessions(run);
       if (!include_config) delete metadata.config;
       return {
         ...metadata,
         writers: writers.writers,
-        sessions: imported,
-        session_count: imported.length,
+        sessions: recordedSessions,
+        session_count: recordedSessions.length,
         session_caveat:
-          "Imported TensorBoard session metadata only. Zero does not imply no native SDK resumes.",
+          run.session_caveat ||
+          (Array.isArray(run.sessions)
+            ? "Server-recorded session provenance. Inferred segments are not a complete count of scheduler jobs."
+            : "Older servers expose TensorBoard metadata only. Zero does not imply no native SDK resumes."),
         metric_count: keys.length,
         file_count: files.length,
         state_caveat: STATE_CAVEAT,
@@ -421,7 +424,7 @@ export function createServer(client) {
 
   tool(
     "plot_metric",
-    "Return a PNG plot directly to an image-capable agent. Compare up to 8 runs, choose per-plot EMA smoothing and axis bounds (zoom). Bounds clip already-fetched points, not a higher-resolution server query. Dashed session markers use TensorBoard provenance. Also saves PNG locally without overwriting.",
+    "Return a PNG plot directly to an image-capable agent. Compare up to 8 runs, choose per-plot EMA smoothing and axis bounds (zoom). Bounds clip already-fetched points, not a higher-resolution server query. Dashed session markers use SDK or TensorBoard provenance on the chosen axis. Also saves PNG locally without overwriting.",
     {
       run_uids: z.array(uid).min(1).max(8),
       key: metric,
